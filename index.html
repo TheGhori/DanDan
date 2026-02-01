@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>I Love You Daniya ♡</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: linear-gradient(135deg, #0a1f5e, #1e4aff, #8cc2ff);
+      overflow: hidden;
+      font-family: 'Pacifico', cursive;
+      touch-action: none;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .heart {
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      opacity: 0.8;
+      animation: floatHeart linear forwards;
+      filter: drop-shadow(0 0 6px #00f0ff) drop-shadow(0 0 12px #00e5ff);
+    }
+
+    @keyframes floatHeart {
+      0% {
+        transform: translateY(110vh) scale(0.5) rotate(0deg);
+        opacity: 0;
+      }
+      20% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-40vh) scale(1.5) rotate(1080deg);
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .heart {
+        width: 28px;
+        height: 28px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const params = new URLSearchParams(location.search);
+    const phrase = params.get("text") || "I love you Daniya";
+
+    const letters = (phrase + "   " + phrase + "   " + phrase + " ").split("");
+
+    let particles = [];
+    let targets = [];
+    let time = 0;
+    let running = true;
+    let heartsPaused = false;
+
+    let currentSpacing;
+    let currentFontSize;
+    let verticalOffset;
+    let heartRange;
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = window.innerWidth + "px";
+      canvas.style.height = window.innerHeight + "px";
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const isMobile = window.innerWidth < 768;
+      const scale = isMobile ? window.innerWidth / 420 : 1;
+
+      currentSpacing = 40 * scale;
+      currentFontSize = 31 * scale;
+      verticalOffset = isMobile ? -window.innerHeight * 0.05 : 15;
+      heartRange = isMobile ? 13 : 15;
+
+      buildHeartShape();
+    }
+
+    function buildHeartShape() {
+      targets = [];
+      let index = 0;
+
+      for (let y = -heartRange; y <= heartRange; y++) {
+        for (let x = -heartRange; x <= heartRange; x++) {
+          const nx = x / heartRange;
+          const ny = y / heartRange;
+          const eq = Math.pow(nx * nx + ny * ny - 1, 3) - nx * nx * ny * ny * ny;
+
+          if (eq <= 0) {
+            targets.push({
+              x: window.innerWidth / 2 + x * currentSpacing,
+              y: window.innerHeight / 2 - y * currentSpacing + verticalOffset,
+              char: letters[index % letters.length]
+            });
+            index++;
+          }
+        }
+      }
+
+      particles = targets.map(t => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        tx: t.x,
+        ty: t.y,
+        char: t.char
+      }));
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      time += 0.015;
+      const pulse = 1 + Math.sin(time * 1.5) * 0.02;
+
+      ctx.save();
+      ctx.translate(window.innerWidth / 2, window.innerHeight / 2);
+      ctx.scale(pulse, pulse);
+      ctx.translate(-window.innerWidth / 2, -window.innerHeight / 2);
+
+      ctx.font = currentFontSize + "px Pacifico";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = "#00f0ff";
+      ctx.shadowBlur = window.innerWidth < 768 ? 16 : 26;
+      ctx.fillStyle = "#ffffff";
+
+      for (const p of particles) {
+        p.x += (p.tx - p.x) * 0.05;
+        p.y += (p.ty - p.y) * 0.05;
+        ctx.fillText(p.char, p.x, p.y);
+      }
+
+      ctx.restore();
+    }
+
+    function animate() {
+      if (running) draw();
+      requestAnimationFrame(animate);
+    }
+
+    function createFloatingHeart() {
+      if (heartsPaused) return;
+      if (document.querySelectorAll(".heart").length > 40) return;
+
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("class", "heart");
+
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", "#00f0ff");
+      path.setAttribute("stroke-width", "2");
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-linejoin", "round");
+      path.setAttribute("d",
+        "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+      );
+
+      svg.appendChild(path);
+
+      svg.style.left = Math.random() * 100 + "vw";
+      svg.style.transform = "scale(" + (Math.random() + 0.5) + ")";
+
+      const dur = 12 + Math.random() * 13;
+      svg.style.animationDuration = dur + "s";
+      svg.style.animationDelay = Math.random() * 3 + "s";
+
+      document.body.appendChild(svg);
+      setTimeout(() => svg.remove(), dur * 1000 + 1000);
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      heartsPaused = document.hidden;
+    });
+
+    window.addEventListener("blur", () => running = false);
+    window.addEventListener("focus", () => running = true);
+    window.addEventListener("resize", resizeCanvas);
+
+    window.onload = () => {
+      resizeCanvas();
+      animate();
+      setInterval(createFloatingHeart, 220);
+
+      for (let i = 0; i < 30; i++) {
+        setTimeout(createFloatingHeart, i * 180);
+      }
+    };
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>I Love You Daniya ♡</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: linear-gradient(135deg, #0a1f5e, #1e4aff, #8cc2ff);
+      overflow: hidden;
+      font-family: 'Pacifico', cursive;
+      touch-action: none;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .heart {
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      opacity: 0.8;
+      animation: floatHeart linear forwards;
+      filter: drop-shadow(0 0 6px #00f0ff) drop-shadow(0 0 12px #00e5ff);
+    }
+
+    @keyframes floatHeart {
+      0% {
+        transform: translateY(110vh) scale(0.5) rotate(0deg);
+        opacity: 0;
+      }
+      20% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-40vh) scale(1.5) rotate(1080deg);
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .heart {
+        width: 28px;
+        height: 28px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const params = new URLSearchParams(location.search);
+    const phrase = params.get("text") || "I love you Daniya";
+
+    const letters = (phrase + "   " + phrase + "   " + phrase + " ").split("");
+
+    let particles = [];
+    let targets = [];
+    let time = 0;
+    let running = true;
+    let heartsPaused = false;
+
+    let currentSpacing;
+    let currentFontSize;
+    let verticalOffset;
+    let heartRange;
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = window.innerWidth + "px";
+      canvas.style.height = window.innerHeight + "px";
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const isMobile = window.innerWidth < 768;
+      const scale = isMobile ? window.innerWidth / 420 : 1;
+
+      currentSpacing = 40 * scale;
+      currentFontSize = 31 * scale;
+      verticalOffset = isMobile ? -window.innerHeight * 0.05 : 15;
+      heartRange = isMobile ? 13 : 15;
+
+      buildHeartShape();
+    }
+
+    function buildHeartShape() {
+      targets = [];
+      let index = 0;
+
+      for (let y = -heartRange; y <= heartRange; y++) {
+        for (let x = -heartRange; x <= heartRange; x++) {
+          const nx = x / heartRange;
+          const ny = y / heartRange;
+          const eq = Math.pow(nx * nx + ny * ny - 1, 3) - nx * nx * ny * ny * ny;
+
+          if (eq <= 0) {
+            targets.push({
+              x: window.innerWidth / 2 + x * currentSpacing,
+              y: window.innerHeight / 2 - y * currentSpacing + verticalOffset,
+              char: letters[index % letters.length]
+            });
+            index++;
+          }
+        }
+      }
+
+      particles = targets.map(t => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        tx: t.x,
+        ty: t.y,
+        char: t.char
+      }));
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      time += 0.015;
+      const pulse = 1 + Math.sin(time * 1.5) * 0.02;
+
+      ctx.save();
+      ctx.translate(window.innerWidth / 2, window.innerHeight / 2);
+      ctx.scale(pulse, pulse);
+      ctx.translate(-window.innerWidth / 2, -window.innerHeight / 2);
+
+      ctx.font = currentFontSize + "px Pacifico";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = "#00f0ff";
+      ctx.shadowBlur = window.innerWidth < 768 ? 16 : 26;
+      ctx.fillStyle = "#ffffff";
+
+      for (const p of particles) {
+        p.x += (p.tx - p.x) * 0.05;
+        p.y += (p.ty - p.y) * 0.05;
+        ctx.fillText(p.char, p.x, p.y);
+      }
+
+      ctx.restore();
+    }
+
+    function animate() {
+      if (running) draw();
+      requestAnimationFrame(animate);
+    }
+
+    function createFloatingHeart() {
+      if (heartsPaused) return;
+      if (document.querySelectorAll(".heart").length > 40) return;
+
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("class", "heart");
+
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", "#00f0ff");
+      path.setAttribute("stroke-width", "2");
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-linejoin", "round");
+      path.setAttribute("d",
+        "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+      );
+
+      svg.appendChild(path);
+
+      svg.style.left = Math.random() * 100 + "vw";
+      svg.style.transform = "scale(" + (Math.random() + 0.5) + ")";
+
+      const dur = 12 + Math.random() * 13;
+      svg.style.animationDuration = dur + "s";
+      svg.style.animationDelay = Math.random() * 3 + "s";
+
+      document.body.appendChild(svg);
+      setTimeout(() => svg.remove(), dur * 1000 + 1000);
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      heartsPaused = document.hidden;
+    });
+
+    window.addEventListener("blur", () => running = false);
+    window.addEventListener("focus", () => running = true);
+    window.addEventListener("resize", resizeCanvas);
+
+    window.onload = () => {
+      resizeCanvas();
+      animate();
+      setInterval(createFloatingHeart, 220);
+
+      for (let i = 0; i < 30; i++) {
+        setTimeout(createFloatingHeart, i * 180);
+      }
+    };
+  </script>
+</body>
+</html>
